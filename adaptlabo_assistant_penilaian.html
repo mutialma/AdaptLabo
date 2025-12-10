@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Asisten Penilaian - AdaptLabo</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    :root{--bg:#f7fbff;--card:#fff;--accent:#2b6cb0}
+    *{box-sizing:border-box}
+    body{font-family:Inter,Segoe UI,Arial;background:var(--bg);color:#072;line-height:1.45}
+    header{background:linear-gradient(90deg,var(--accent),#764ba2);color:#fff;padding:1rem}
+    .container{max-width:1100px;margin:1rem auto;padding:1rem}
+    .card{background:var(--card);border-radius:12px;padding:1rem;box-shadow:0 6px 18px rgba(16,24,40,.06);margin-bottom:1rem}
+    h1{font-size:1.2rem}
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:1rem}
+    @media(max-width:940px){.grid{grid-template-columns:1fr}}
+    label{display:block;font-weight:600;margin-top:.6rem}
+    input,select,textarea{width:100%;padding:.6rem;border-radius:8px;border:1px solid #e6eefb;margin-top:.3rem}
+    .btn{background:var(--accent);color:#fff;padding:.5rem .8rem;border-radius:8px;border:none;cursor:pointer}
+    .outline{background:transparent;border:1px solid #e6e9ef;padding:.45rem .7rem;border-radius:8px;cursor:pointer}
+    .small{font-size:.9rem;color:#556}
+    .question{padding:.6rem;border-radius:8px;background:#fcfdff;border:1px solid #eef6ff;margin-bottom:.6rem}
+    .answer{margin-top:.4rem}
+    .badge{display:inline-block;padding:.2rem .45rem;border-radius:6px;background:#eef6ff;color:#084}
+    .stat{display:flex;gap:1rem;align-items:center}
+    table{width:100%;border-collapse:collapse}
+    th,td{border:1px solid #eee;padding:.4rem;text-align:left}
+  </style>
+</head>
+<body>
+  <header>
+    <div style="max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;align-items:center;gap:.6rem"><i class="fas fa-clipboard-check"></i><strong>Asisten Penilaian</strong></div>
+      <div class="small">Buat soal berlevel, analisis nilai otomatis, dan berikan feedback instan.</div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h1>Asisten Penilaian</h1>
+      <p class="small">Buat bank soal berlevel (Mudah/Sedang/Sulit), kumpulkan jawaban siswa, dan dapatkan penilaian serta feedback otomatis. Progress dan data tersimpan di <code>localStorage</code> (kunci: <code>adaptlabo_assessment</code>).</p>
+
+      <div class="grid" style="margin-top:.8rem">
+        <div>
+          <div class="card">
+            <h3>1. Buat Soal Berlevel</h3>
+            <label>Topik</label>
+            <input id="topic" placeholder="Topik: AI Dasar" />
+
+            <label>Soal (format: tipe|level|pertanyaan|jawaban contoh)
+              <div class="small">Contoh: <code>mcq|easy|Apa kepanjangan AI?|Artificial Intelligence;Advanced Instruction;Automatic Input|0</code></div>
+            </label>
+            <textarea id="questionInput" rows="3" placeholder="Masukkan soal per baris..." ></textarea>
+            <div style="display:flex;gap:.5rem;margin-top:.6rem">
+              <button id="addQuestions" class="btn">Tambah Soal</button>
+              <button id="clearQuestions" class="outline">Hapus Semua Soal</button>
+            </div>
+            <div class="small" style="margin-top:.6rem">Format yang didukung: <strong>mcq</strong> (pilihan berganda), <strong>short</strong> (jawaban singkat). Untuk MCQ, gunakan format: <code>mcq|level|soal|opt1;opt2;opt3|index_benar</code>. Level: easy/medium/hard.</div>
+          </div>
+
+          <div class="card" style="margin-top:.8rem">
+            <h3>2. Daftar Soal (Bank Soal)</h3>
+            <div id="bankArea" class="small">Belum ada soal.</div>
+            <div style="margin-top:.6rem;display:flex;gap:.5rem">
+              <button id="exportBank" class="outline">Ekspor Bank Soal (JSON)</button>
+              <button id="importBank" class="outline">Impor Bank Soal</button>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:.8rem">
+            <h3>3. Kumpulkan Jawaban Siswa</h3>
+            <label>Nama Siswa</label>
+            <input id="studentName" placeholder="Nama siswa" />
+            <label>Pilih Level Soal</label>
+            <select id="pickLevel"><option value="easy">Mudah</option><option value="medium">Sedang</option><option value="hard">Sulit</option></select>
+            <div style="margin-top:.6rem"><button id="startAssessment" class="btn">Mulai Ujian (generate soal sesuai level)</button></div>
+            <div id="assessmentArea" style="margin-top:.6rem"></div>
+          </div>
+        </div>
+
+        <aside>
+          <div class="card">
+            <h3>Analisis & Feedback</h3>
+            <div id="resultSummary" class="small">Belum ada hasil.</div>
+            <div style="margin-top:.6rem">
+              <button id="gradeNow" class="btn">Nilai Sekarang</button>
+              <button id="exportResult" class="outline" style="margin-left:.4rem">Ekspor Hasil (JSON)</button>
+            </div>
+            <hr style="margin:.6rem 0;border:none;border-top:1px dashed #eef6ff">
+            <h4>Statistik Kelas</h4>
+            <div id="classStats" class="small">Tidak ada data.</div>
+          </div>
+
+          <div class="card small" style="margin-top:.8rem">
+            <h4>Feedback Otomatis</h4>
+            <div id="autoFeedback" class="small">Feedback akan muncul setelah penilaian.</div>
+          </div>
+
+        </aside>
+      </div>
+    </section>
+  </main>
+
+<script>
+// safe scripting wrapped in DOMContentLoaded
+document.addEventListener('DOMContentLoaded', function(){
+  const STORAGE_KEY = 'adaptlabo_assessment';
+
+  function loadState(){
+    try{ return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }catch(e){ return {}; }
+  }
+  function saveState(s){ localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
+
+  function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  // bank soal structure: { topic: '', questions: [ {id, type, level, q, options?, answerIndex?, answerText?} ] }
+  let state = loadState();
+  if(!state.questions) state.questions = [];
+  if(!state.topic) state.topic = '';
+
+  // UI refs
+  const questionInput = document.getElementById('questionInput');
+  const addQuestions = document.getElementById('addQuestions');
+  const clearQuestions = document.getElementById('clearQuestions');
+  const bankArea = document.getElementById('bankArea');
+  const exportBank = document.getElementById('exportBank');
+  const importBank = document.getElementById('importBank');
+  const topicEl = document.getElementById('topic');
+  const studentName = document.getElementById('studentName');
+  const pickLevel = document.getElementById('pickLevel');
+  const startAssessment = document.getElementById('startAssessment');
+  const assessmentArea = document.getElementById('assessmentArea');
+  const gradeNow = document.getElementById('gradeNow');
+  const resultSummary = document.getElementById('resultSummary');
+  const classStats = document.getElementById('classStats');
+  const autoFeedback = document.getElementById('autoFeedback');
+  const exportResult = document.getElementById('exportResult');
+
+  // helpers
+  function renderBank(){
+    if(!state.questions.length){ bankArea.innerHTML = '<div class="small">Belum ada soal.</div>'; return; }
+    const html = state.questions.map((q, i)=>`<div class="question"><strong>#${i+1} [${escapeHtml(q.level)}] ${escapeHtml(q.type.toUpperCase())}</strong><div style="margin-top:.4rem">${escapeHtml(q.q)}</div>${q.type==='mcq' && q.options? '<div class="small" style="margin-top:.4rem">Pilihan: '+q.options.map((o,ii)=>`<div>${ii}. ${escapeHtml(o)}</div>`).join('')+'</div>':''}<div style="margin-top:.4rem" class="small">ID: ${q.id}</div></div>`).join('');
+    bankArea.innerHTML = html;
+  }
+
+  function parseQuestionLine(line){
+    // expected formats:
+    // mcq|easy|question|opt1;opt2;opt3|0
+    // short|medium|question|expected_answer_keywords(comma separated)
+    const parts = line.split('|').map(s=>s.trim());
+    if(parts.length<4) return null;
+    const type = parts[0]; const level = parts[1] || 'easy'; const q = parts[2];
+    if(type==='mcq'){
+      const opts = (parts[3]||'').split(';').map(s=>s.trim()).filter(Boolean);
+      const correctIndex = parts[4] ? parseInt(parts[4],10) : 0;
+      return {id: 'q'+Date.now()+Math.random().toString(36).slice(2,6), type:'mcq', level, q, options:opts, answerIndex: correctIndex};
+    } else if(type==='short'){
+      const keywords = (parts[3] || '').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean);
+      return {id: 'q'+Date.now()+Math.random().toString(36).slice(2,6), type:'short', level, q, keywords};
+    }
+    return null;
+  }
+
+  addQuestions.addEventListener('click', ()=>{
+    const raw = questionInput.value.split('\n').map(l=>l.trim()).filter(Boolean);
+    let added=0;
+    raw.forEach(line=>{
+      const pq = parseQuestionLine(line);
+      if(pq){ state.questions.push(pq); added++; }
+    });
+    state.topic = topicEl.value || state.topic;
+    saveState(state);
+    questionInput.value='';
+    renderBank();
+    alert(added + ' soal ditambahkan.');
+  });
+
+  clearQuestions.addEventListener('click', ()=>{
+    if(!confirm('Hapus semua soal?')) return; state.questions=[]; saveState(state); renderBank();
+  });
+
+  exportBank.addEventListener('click', ()=>{
+    const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download = (state.topic||'bank_soal') + '_bank.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  });
+
+  importBank.addEventListener('click', ()=>{
+    const inp = document.createElement('input'); inp.type='file'; inp.accept='application/json'; inp.onchange = async e=>{
+      const f = e.target.files[0]; if(!f) return; const txt = await f.text(); try{ const data = JSON.parse(txt); if(data.questions) state = data; else state.questions = data; saveState(state); renderBank(); alert('Bank soal diimpor.'); }catch(err){ alert('File tidak valid.'); }
+    }; inp.click();
+  });
+
+  renderBank();
+
+  // Assessment generation based on chosen level
+  let currentAssessment = null; // {student, level, items: [{qId, type, q, options, answerInput, correct?}]}
+
+  startAssessment.addEventListener('click', ()=>{
+    const name = studentName.value.trim(); if(!name){ alert('Masukkan nama siswa.'); return; }
+    const level = pickLevel.value || 'easy';
+    // sample strategy: pick up to 5 questions matching level, if not enough, fill from other levels
+    const pool = state.questions.filter(q=>q.level===level);
+    const fill = state.questions.filter(q=>q.level!==level);
+    const chosen = pool.slice(0,5);
+    if(chosen.length<5) chosen.push(...fill.slice(0, 5-chosen.length));
+    if(!chosen.length){ alert('Tidak ada soal tersedia. Tambahkan soal terlebih dahulu.'); return; }
+    currentAssessment = {student:name, level, items: chosen.map(q=>({qId:q.id, type:q.type, q:q.q, options:q.options||null, expected:q.options? q.answerIndex : q.keywords, answerInput:null, score:0})) };
+    // render form
+    assessmentArea.innerHTML = '<div class="small">Soal untuk: <strong>'+escapeHtml(name)+'</strong> (level: '+escapeHtml(level)+')</div>' + currentAssessment.items.map((it, idx)=>{
+      if(it.type==='mcq'){
+        return `<div class="question"><div><strong>Q${idx+1} (MCQ)</strong> ${escapeHtml(it.q)}</div><div class="answer">${it.options.map((opt,oIdx)=>`<label><input type=\"radio\" name=\"ans_${idx}\" value=\"${oIdx}\"> ${escapeHtml(opt)}</label><br>`).join('')}</div></div>`;
+      } else {
+        return `<div class="question"><div><strong>Q${idx+1} (Short)</strong> ${escapeHtml(it.q)}</div><div class="answer"><textarea name=\"ans_${idx}\" rows=2 style=\"width:100%\"></textarea></div></div>`;
+      }
+    }).join('') + '<div style="margin-top:.6rem"><button id="submitAssessment" class="btn">Kumpulkan Jawaban</button></div>';
+
+    // attach submit handler
+    document.getElementById('submitAssessment').addEventListener('click', ()=>{
+      // collect answers
+      currentAssessment.items.forEach((it, idx)=>{
+        if(it.type==='mcq'){
+          const r = document.querySelector('input[name="ans_'+idx+'"]:checked'); it.answerInput = r ? parseInt(r.value,10) : null;
+        } else {
+          const ta = document.querySelector('textarea[name="ans_'+idx+'"]'); it.answerInput = ta ? ta.value.trim() : '';
+        }
+      });
+      // store result in state.results
+      if(!state.results) state.results = [];
+      const res = {student: currentAssessment.student, level: currentAssessment.level, timestamp: new Date().toISOString(), items: currentAssessment.items};
+      state.results.push(res); saveState(state); alert('Jawaban disimpan. Klik "Nilai Sekarang" untuk melihat hasil.');
+      renderClassStats();
+    });
+  });
+
+  // Grading function
+  function gradeAll(){
+    if(!state.results || !state.results.length){ alert('Tidak ada hasil untuk dinilai.'); return; }
+    // For each result, grade each item
+    state.results.forEach(res=>{
+      res.total = 0; res.possible = 0; res.feedback = [];
+      res.items.forEach(it=>{
+        let score = 0; let max=1;
+        if(it.type==='mcq'){
+          max = 1; res.possible += max;
+          if(it.answerInput !== null && it.answerInput === it.expected){ score = 1; res.feedback.push({qId:it.qId, ok:true, msg:'Jawaban benar.'}); } else { res.feedback.push({qId:it.qId, ok:false, msg:'Jawaban kurang tepat. Jelaskan konsep X atau beri hint.'}); }
+        } else if(it.type==='short'){
+          max = 1; res.possible += max;
+          // simple keyword matching
+          const got = (it.answerInput || '').toLowerCase(); const keywords = it.expected || [];
+          const matchCount = keywords.filter(k=> got.includes(k)).length;
+          // score proportional
+          score = keywords.length ? Math.min(1, matchCount / keywords.length) : (got? 1:0);
+          res.feedback.push({qId:it.qId, ok: score>=0.6, msg: score>=0.6? 'Jawaban memadai.' : 'Perlu menambahkan poin penting: '+(keywords.join(', '))});
+        }
+        it.score = score; res.total += score;
+      });
+      res.percentage = Math.round((res.total / (res.possible||1)) * 100);
+    });
+    saveState(state);
+    renderResults();
+    alert('Semua hasil telah dinilai otomatis.');
+  }
+
+  gradeNow.addEventListener('click', gradeAll);
+
+  function renderResults(){
+    if(!state.results || !state.results.length){ resultSummary.innerHTML = '<div class="small">Tidak ada hasil.</div>'; return; }
+    // show latest results
+    const latest = state.results.slice(-5).reverse();
+    resultSummary.innerHTML = latest.map(r=>`<div style=\"margin-bottom:.6rem\"><strong>${escapeHtml(r.student)}</strong> — ${r.percentage || 0}% <div class=\"small\">${r.feedback.map(f=>escapeHtml(f.msg)).join(' • ')}</div></div>`).join('');
+    renderClassStats();
+    autoFeedback.innerHTML = generateAutoFeedback();
+  }
+
+  function renderClassStats(){
+    if(!state.results || !state.results.length){ classStats.innerHTML = '<div class="small">Tidak ada data.</div>'; return; }
+    // simple stats: avg, min, max
+    const scores = state.results.map(r=> r.percentage || 0);
+    const avg = Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
+    const min = Math.min(...scores); const max = Math.max(...scores);
+    classStats.innerHTML = `<div class=\"small\"><div>Avg: <strong>${avg}%</strong></div><div>Min: ${min}%</div><div>Max: ${max}%</div><div>Peserta: ${scores.length}</div></div>`;
+  }
+
+  function generateAutoFeedback(){
+    if(!state.results || !state.results.length) return 'Tidak ada feedback.';
+    // identify common weak questions
+    const qStats = {};
+    state.results.forEach(r=> r.items.forEach(it=>{ qStats[it.qId] = qStats[it.qId] || {wrong:0, total:0, q:it.q}; if(!it.score || it.score < 0.6) qStats[it.qId].wrong++; qStats[it.qId].total++; }));
+    const weak = Object.values(qStats).filter(s=> s.wrong / s.total > 0.4).sort((a,b)=> (b.wrong/b.total)-(a.wrong/a.total)).slice(0,3);
+    if(!weak.length) return 'Sebagian besar siswa memahami materi. Berikan tantangan lanjutan untuk memperdalam.';
+    return 'Soal yang perlu penguatan: ' + weak.map(w=> `${w.q} (kesulitan ${Math.round((w.wrong/w.total)*100)}%)`).join(' | ');
+  }
+
+  renderResults();
+
+  exportResult.addEventListener('click', ()=>{
+    if(!state.results) return alert('Tidak ada hasil.');
+    const blob = new Blob([JSON.stringify(state.results, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download = (state.topic||'results') + '_results.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  });
+
+}); // DOMContentLoaded
+</script>
+</body>
+</html>

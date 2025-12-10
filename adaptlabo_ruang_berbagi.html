@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Ruang Berbagi Praktik Baik - AdaptLabo</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    :root{--bg:#f7fbff;--card:#fff;--accent:#5a67d8}
+    *{box-sizing:border-box}
+    body{font-family:Inter,Segoe UI,Arial;background:var(--bg);color:#0b1720}
+    header{background:linear-gradient(90deg,var(--accent),#764ba2);color:#fff;padding:1rem}
+    .container{max-width:1100px;margin:1rem auto;padding:1rem}
+    .card{background:var(--card);border-radius:12px;padding:1rem;box-shadow:0 6px 18px rgba(16,24,40,.06);margin-bottom:1rem}
+    h1{font-size:1.2rem}
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:1rem}
+    @media(max-width:920px){.grid{grid-template-columns:1fr}}
+    input,textarea,select{width:100%;padding:.6rem;border-radius:8px;border:1px solid #e6eefb;margin-top:.3rem}
+    .btn{background:var(--accent);color:#fff;padding:.5rem .8rem;border-radius:8px;border:none;cursor:pointer}
+    .outline{background:transparent;border:1px solid #e6e9ef;padding:.45rem .7rem;border-radius:8px;cursor:pointer}
+    .small{font-size:.9rem;color:#556}
+    .post{border:1px solid #eef2ff;padding:.8rem;border-radius:10px;margin-bottom:.6rem;background:#fbfdff}
+    .tag{display:inline-block;padding:.2rem .45rem;border-radius:6px;background:#eef2ff;color:#234}
+    .meta{font-size:.85rem;color:#446}
+    .search{display:flex;gap:.5rem}
+    .network-list li{margin-bottom:.4rem}
+  </style>
+</head>
+<body>
+  <header>
+    <div style="max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;align-items:center;gap:.6rem"><i class="fas fa-users"></i><strong>Ruang Berbagi Praktik Baik</strong></div>
+      <div class="small">Berbagi pengalaman, studi kasus implementasi AI, dan bangun jejaring profesional.</div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h1>Ruang Berbagi Praktik Baik</h1>
+      <p class="small">Tempat guru berbagi pengalaman, studi kasus implementasi AI di kelas, sumber daya, dan membangun jejaring profesional. Semua data tersimpan di <code>localStorage</code> (kunci: <code>adaptlabo_share</code>) untuk demo — untuk produksi gunakan backend.</p>
+
+      <div class="grid" style="margin-top:.8rem">
+        <div>
+          <div class="card">
+            <h3>Buat Postingan Pengalaman</h3>
+            <label>Judul</label>
+            <input id="postTitle" placeholder="Judul pengalaman / studi kasus" />
+            <label>Ringkasan (singkat)</label>
+            <input id="postSummary" placeholder="Ringkasan singkat" />
+            <label>Isi (detail pengalaman, langkah, hasil)</label>
+            <textarea id="postContent" rows="6" placeholder="Ceritakan praktik: konteks, langkah, hasil, tantangan, rekomendasi"></textarea>
+            <label>Tag (pisahkan dengan koma, contoh: AI,Penilaian,Etika)</label>
+            <input id="postTags" placeholder="AI, Penilaian, Tools" />
+            <label>Link Referensi (opsional)</label>
+            <input id="postLink" placeholder="https://contoh.com/paper" />
+            <div style="display:flex;gap:.5rem;margin-top:.6rem">
+              <button id="publishPost" class="btn">Publikasikan</button>
+              <button id="clearAllPosts" class="outline">Hapus Semua Post</button>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:.8rem">
+            <h3>Pencarian & Filter</h3>
+            <div class="search">
+              <input id="searchQuery" placeholder="Cari judul/isi/tag" />
+              <select id="filterTag"><option value="">Filter tag</option></select>
+              <button id="doSearch" class="btn">Cari</button>
+            </div>
+            <div style="margin-top:.6rem" class="small">Gunakan pencarian untuk menemukan studi kasus atau praktik serupa dari rekan guru.</div>
+          </div>
+
+          <div class="card" style="margin-top:.8rem">
+            <h3>Daftar Postingan</h3>
+            <div id="postsList" class="small">Belum ada postingan.</div>
+          </div>
+        </div>
+
+        <aside>
+          <div class="card">
+            <h3>Jejaring Profesional</h3>
+            <label>Nama Anda</label>
+            <input id="profileName" placeholder="Nama lengkap" />
+            <label>Afiliasi / Sekolah</label>
+            <input id="profileAff" placeholder="Sekolah / Unit" />
+            <label>Bidang Minat (pisah koma)</label>
+            <input id="profileTags" placeholder="AI, Literasi Digital, Penilaian" />
+            <div style="display:flex;gap:.5rem;margin-top:.6rem">
+              <button id="saveProfile" class="btn">Simpan Profil</button>
+              <button id="clearProfile" class="outline">Hapus Profil</button>
+            </div>
+            <hr style="margin:.8rem 0;border:none;border-top:1px dashed #eef2ff">
+            <h4>Jaringan</h4>
+            <ul id="networkList" class="network-list small">Belum terhubung dengan siapa pun.</ul>
+            <div style="margin-top:.6rem;display:flex;gap:.5rem">
+              <button id="discover" class="btn">Temukan Guru Lain</button>
+              <button id="exportShare" class="outline">Ekspor Semua (JSON)</button>
+            </div>
+          </div>
+
+          <div class="card small" style="margin-top:.8rem">
+            <h4>Panduan Singkat</h4>
+            <ol>
+              <li>Bagikan pengalaman singkat & jelas: konteks, langkah, hasil.</li>
+              <li>Sertakan tag agar mudah ditemukan (mis. AI,Assessment,Project).</li>
+              <li>Gunakan jejaring untuk kolaborasi dan studi lebih lanjut.</li>
+            </ol>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const STORAGE_KEY = 'adaptlabo_share';
+  function load(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }catch(e){ return {}; } }
+  function save(s){ localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
+
+  let state = load();
+  if(!state.posts) state.posts = [];
+  if(!state.profile) state.profile = null;
+
+  // UI refs
+  const postTitle = document.getElementById('postTitle');
+  const postSummary = document.getElementById('postSummary');
+  const postContent = document.getElementById('postContent');
+  const postTags = document.getElementById('postTags');
+  const postLink = document.getElementById('postLink');
+  const publishPost = document.getElementById('publishPost');
+  const clearAllPosts = document.getElementById('clearAllPosts');
+  const postsList = document.getElementById('postsList');
+  const filterTag = document.getElementById('filterTag');
+  const searchQuery = document.getElementById('searchQuery');
+  const doSearch = document.getElementById('doSearch');
+  const profileName = document.getElementById('profileName');
+  const profileAff = document.getElementById('profileAff');
+  const profileTags = document.getElementById('profileTags');
+  const saveProfile = document.getElementById('saveProfile');
+  const clearProfile = document.getElementById('clearProfile');
+  const networkList = document.getElementById('networkList');
+  const discover = document.getElementById('discover');
+  const exportShare = document.getElementById('exportShare');
+
+  function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function renderPosts(list){
+    if(!list || !list.length){ postsList.innerHTML = '<div class="small">Belum ada postingan.</div>'; return; }
+    postsList.innerHTML = list.map(p=>{
+      const tags = (p.tags||[]).map(t=>`<span class=\"tag\">${escapeHtml(t)}</span>`).join(' ');
+      const link = p.link? `<div style=\"margin-top:.4rem\"><a href=\"${escapeHtml(p.link)}\" target=\"_blank\">Referensi</a></div>`: '';
+      return `<div class=\"post\"><h4>${escapeHtml(p.title)}</h4><div class=\"meta\">${escapeHtml(p.summary)} • ${new Date(p.created).toLocaleString()}</div><div style=\"margin-top:.5rem\">${escapeHtml(p.content).replace(/\n/g,'<br>')}</div><div style=\"margin-top:.6rem\">${tags}</div>${link}<div style=\"margin-top:.6rem\" class=\"small\"><button class=\"outline\" data-id=\"${p.id}\">Komentar</button> <button class=\"outline\" data-id=\"${p.id}\" data-act=\"share\">Bagikan</button></div></div>`;
+    }).join('');
+
+    // update filterTag options
+    const allTags = Array.from(new Set(state.posts.flatMap(p=>p.tags||[]))).sort();
+    filterTag.innerHTML = '<option value="">Filter tag</option>' + allTags.map(t=>`<option value=\"${escapeHtml(t)}\">${escapeHtml(t)}</option>`).join('');
+
+    // attach handlers for comment/share buttons
+    postsList.querySelectorAll('button').forEach(btn=>{
+      btn.addEventListener('click', function(){ const id = this.dataset.id; const act = this.dataset.act || 'comment'; if(act==='share'){ alert('Fitur bagikan: salin konten / share link (demo).'); } else { const comment = prompt('Masukkan komentar:'); if(comment){ const post = state.posts.find(x=>x.id===id); if(!post.comments) post.comments=[]; post.comments.push({text:comment, at:new Date().toISOString()}); save(state); alert('Komentar tersimpan.'); } } });
+    });
+  }
+
+  function publish(){
+    const title = postTitle.value.trim(); if(!title) return alert('Masukkan judul.');
+    const content = postContent.value.trim(); if(!content) return alert('Isi konten.');
+    const summary = postSummary.value.trim(); const tags = postTags.value.split(',').map(s=>s.trim()).filter(Boolean);
+    const link = postLink.value.trim();
+    const p = { id: 'p'+Date.now()+Math.random().toString(36).slice(2,6), title, summary, content, tags, link, created: new Date().toISOString() };
+    state.posts.unshift(p); save(state); renderPosts(state.posts); // clear form
+    postTitle.value=''; postSummary.value=''; postContent.value=''; postTags.value=''; postLink.value='';
+    alert('Postingan dipublikasikan.');
+  }
+
+  function clearAll(){ if(!confirm('Hapus semua postingan?')) return; state.posts=[]; save(state); renderPosts(state.posts); }
+
+  publishPost.addEventListener('click', publish);
+  clearAllPosts.addEventListener('click', clearAll);
+
+  doSearch.addEventListener('click', ()=>{
+    const q = searchQuery.value.trim().toLowerCase(); const tag = filterTag.value;
+    let res = state.posts;
+    if(tag) res = res.filter(p=> (p.tags||[]).includes(tag));
+    if(q) res = res.filter(p=> (p.title+ ' ' + p.summary + ' ' + p.content + ' ' + (p.tags||[]).join(' ')).toLowerCase().includes(q));
+    renderPosts(res);
+  });
+
+  // Profile & network (local demo)
+  function renderProfile(){
+    if(!state.profile){ networkList.innerHTML = '<li>Belum ada profil.</li>'; return; }
+    profileName.value = state.profile.name || ''; profileAff.value = state.profile.aff || ''; profileTags.value = (state.profile.tags||[]).join(', ');
+    // mock network discovery: find other saved profiles in localStorage under key 'adaptlabo_profiles'
+    const others = JSON.parse(localStorage.getItem('adaptlabo_profiles') || '[]').filter(p=> p.name && p.name !== state.profile.name);
+    if(!others.length) networkList.innerHTML = '<li>Belum terhubung dengan siapa pun.</li>'; else networkList.innerHTML = others.map(o=>`<li><strong>${escapeHtml(o.name)}</strong> — ${escapeHtml(o.aff || '')} <div class=\"small\">Minat: ${escapeHtml((o.tags||[]).join(', '))}</div></li>`).join('');
+  }
+
+  saveProfile.addEventListener('click', ()=>{
+    const name = profileName.value.trim(); if(!name) return alert('Masukkan nama.');
+    const aff = profileAff.value.trim(); const tags = profileTags.value.split(',').map(s=>s.trim()).filter(Boolean);
+    state.profile = {name, aff, tags}; save(state);
+    // also append to global profiles for discovery demo
+    const mp = JSON.parse(localStorage.getItem('adaptlabo_profiles') || '[]');
+    const existingIndex = mp.findIndex(x=> x.name === name && x.aff === aff);
+    if(existingIndex >=0) mp[existingIndex] = state.profile; else mp.push(state.profile);
+    localStorage.setItem('adaptlabo_profiles', JSON.stringify(mp));
+    renderProfile(); alert('Profil tersimpan.');
+  });
+
+  clearProfile.addEventListener('click', ()=>{ if(!confirm('Hapus profil Anda?')) return; state.profile = null; save(state); renderProfile(); });
+
+  discover.addEventListener('click', ()=>{ // simple discovery using stored profiles
+    const mp = JSON.parse(localStorage.getItem('adaptlabo_profiles') || '[]'); if(!mp.length) return alert('Belum ada profil lain untuk ditemukan.'); alert('Menemukan '+mp.length+' profil. Lihat panel jaringan di samping.'); renderProfile(); });
+
+  exportShare.addEventListener('click', ()=>{ const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download = 'adaptlabo_share_export.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); });
+
+  renderPosts(state.posts);
+  renderProfile();
+
+});
+</script>
+</body>
+</html>

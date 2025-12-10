@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Generator Bahan Ajar - AdaptLabo</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    :root{--bg:#f8fafc;--card:#fff;--accent:#667eea}
+    *{box-sizing:border-box}
+    body{font-family:Inter,Segoe UI,Arial;background:var(--bg);color:#102;line-height:1.4}
+    header{background:linear-gradient(90deg,var(--accent),#764ba2);color:#fff;padding:1rem}
+    .container{max-width:1100px;margin:1rem auto;padding:1rem}
+    .card{background:var(--card);border-radius:12px;padding:1rem;box-shadow:0 6px 18px rgba(16,24,40,.06);margin-bottom:1rem}
+    h1{font-size:1.15rem}
+    .grid{display:grid;grid-template-columns:1fr 380px;gap:1rem}
+    @media(max-width:960px){.grid{grid-template-columns:1fr}}
+    label{display:block;font-weight:600;margin-top:.6rem}
+    input,select,textarea{width:100%;padding:.6rem;border-radius:8px;border:1px solid #e6eefb;margin-top:.3rem}
+    .btn{background:var(--accent);color:#fff;padding:.5rem .8rem;border-radius:8px;border:none;cursor:pointer}
+    .outline{background:transparent;border:1px solid #e6e9ef;padding:.45rem .7rem;border-radius:8px;cursor:pointer}
+    .small{font-size:.9rem;color:#556}
+    .preview{border:1px dashed #eef2ff;padding:.8rem;border-radius:8px;background:#fcfdff}
+    .row{display:flex;gap:.6rem}
+  </style>
+</head>
+<body>
+  <header>
+    <div style="max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;align-items:center;gap:.6rem"><i class="fas fa-file-powerpoint"></i><strong>Generator Bahan Ajar</strong></div>
+      <div class="small">Integrasi: AdaptLabo — Generator otomatis slide, LKPD, artikel, evaluasi dan rubrik penilaian.</div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h1>Generator Bahan Ajar</h1>
+      <p class="small">Isi form di bawah lalu pilih jenis bahan ajar yang ingin dibuat. Output bisa diunduh sebagai file HTML/MD/JSON sederhana untuk disesuaikan lebih lanjut.</p>
+
+      <div class="grid" style="margin-top:.8rem">
+        <div>
+          <label>Judul / Topik</label>
+          <input id="topic" placeholder="Contoh: Pengenalan AI untuk Kelas X" />
+
+          <label>Level / Kelas</label>
+          <input id="grade" placeholder="Contoh: Kelas X / SMA" />
+
+          <label>Tujuan Pembelajaran (pisahkan dengan ; )</label>
+          <input id="objectives" placeholder="Contoh: Memahami konsep AI; Menggunakan chatbot sederhana" />
+
+          <label>Durasi Rekomendasi (menit)</label>
+          <input id="duration" type="number" value="45" />
+
+          <label>Target Kompetensi / KD</label>
+          <input id="kd" placeholder="Contoh: Menjelaskan konsep kecerdasan buatan" />
+
+          <label>Pilih Modul Sumber (opsional — ambil dari AdaptLabo localStorage)</label>
+          <select id="moduleSource"><option value="">-- tidak ikut module --</option></select>
+
+          <div style="display:flex;gap:.6rem;margin-top:.8rem">
+            <button class="btn" id="genSlides">Buat Slide (HTML)</button>
+            <button class="btn" id="genLKPD">Buat LKPD (HTML)</button>
+            <button class="btn" id="genArticle">Buat Artikel (MD)</button>
+          </div>
+
+          <div style="display:flex;gap:.6rem;margin-top:.6rem">
+            <button class="btn" id="genEval">Buat Evaluasi (JSON)</button>
+            <button class="btn" id="genRubric">Buat Rubrik Penilaian (HTML)</button>
+          </div>
+
+          <div style="margin-top:.8rem">
+            <button id="downloadAll" class="outline">Unduh Semua Sebagai ZIP (single HTML/JSON files)</button>
+          </div>
+
+        </div>
+
+        <aside>
+          <div class="card preview">
+            <h4>Pratinjau Singkat</h4>
+            <div id="previewArea" class="small">Belum ada konten. Isi form lalu klik salah satu tombol untuk melihat hasil singkat.</div>
+          </div>
+
+          <div class="card small">
+            <h4>Petunjuk dan Integrasi</h4>
+            <ul>
+              <li>Generator ini membaca <code>adaptlabo_user</code> dari <code>localStorage</code> untuk mengambil modul jika tersedia.</li>
+              <li>Slide dibuat sebagai file HTML sederhana (tanpa library eksternal) — bisa dijadikan PPT dengan konversi manual atau import ke editor slide.</li>
+              <li>LKPD disajikan dalam format HTML siap cetak.</li>
+              <li>Evaluasi di-export sebagai JSON (soal pilihan dan esai) untuk integrasi ke LMS sederhana.</li>
+            </ul>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+<script>
+// Wrap all script logic inside DOMContentLoaded to avoid manipulating DOM before it's ready
+document.addEventListener('DOMContentLoaded', function(){
+  // Load modules dari localStorage (adaptlabo_user) jika ada
+  const STORAGE_KEY = 'adaptlabo_user';
+  function loadModulesFromStorage(){
+    try{
+      const u = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+      // if user.completed or modules info exist, try to infer modules
+      const select = document.getElementById('moduleSource');
+      if(!select) return;
+      select.innerHTML = '<option value="">-- tidak ikut module --</option>';
+      if(u && u.completed && u.modules){
+        // if stored as explicit modules
+        u.modules.forEach(m=>{ const opt = document.createElement('option'); opt.value=m.id; opt.textContent = m.title; select.appendChild(opt); });
+      } else {
+        // try to get modules from other canvas module file (if saved in localStorage as 'adaptlabo_modules')
+        const modulesList = JSON.parse(localStorage.getItem('adaptlabo_modules') || 'null');
+        if(modulesList && Array.isArray(modulesList)){
+          modulesList.forEach(m=>{ const opt = document.createElement('option'); opt.value=m.id; opt.textContent=m.title; select.appendChild(opt); });
+        }
+      }
+    }catch(e){ console.warn('no modules in storage', e); }
+  }
+
+  function getForm(){
+    return {
+      topic: document.getElementById('topic').value || 'Topik Tanpa Judul',
+      grade: document.getElementById('grade').value || '-',
+      objectives: (document.getElementById('objectives').value || '').split(';').map(s=>s.trim()).filter(Boolean),
+      duration: document.getElementById('duration').value || '45',
+      kd: document.getElementById('kd').value || '-',
+      moduleSource: document.getElementById('moduleSource').value || ''
+    };
+  }
+
+  function download(filename, text, mime='text/html'){ const blob = new Blob([text], {type:mime}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); }
+
+  // escapeHtml must be declared before usage in templates
+  function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  // 1) Generate Slide HTML (simple multipage slides with next/prev)
+  function generateSlides(form){
+    // create basic slides: title, objectives, content slide, activity
+    const slides = [];
+    slides.push({title:form.topic, content:`<p><strong>Level:</strong> ${escapeHtml(form.grade)}</p><p><strong>Durasi:</strong> ${escapeHtml(String(form.duration))} menit</p>`});
+    if(form.objectives.length) slides.push({title:'Tujuan Pembelajaran', content:'<ul>'+form.objectives.map(o=>`<li>${escapeHtml(o)}</li>`).join('') + '</ul>'});
+    slides.push({title:'Konsep Utama', content:`<p>Ringkasan materi untuk ${escapeHtml(form.topic)}. Tambahkan poin-poin inti di sini.</p>`});
+    slides.push({title:'Aktivitas', content:'<ol><li>Diskusi</li><li>Latihan</li></ol>'});
+    slides.push({title:'Penutup & Penilaian', content:'<p>Refleksi & Tugas rumah singkat.</p>'});
+
+    // Build safe HTML for slides
+    const slidesHtml = slides.map((s,i)=>{
+      const active = i===0 ? ' active' : '';
+      return `<section class="slide${active}" data-index="${i}"><h1>${escapeHtml(s.title)}</h1><div>${s.content}</div></section>`;
+    }).join('');
+
+    const html = `<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Slides - ${escapeHtml(form.topic)}</title><style>body{font-family:Arial,Helvetica,sans-serif;background:#111;color:#fff} .slide{display:none;padding:40px;height:100vh;box-sizing:border-box} .slide.active{display:block} .controls{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:.5rem}.btn{background:#fff;color:#111;padding:.5rem .8rem;border-radius:6px;border:none;cursor:pointer}</style></head><body>`
+      + slidesHtml +
+      `<div class="controls"><button class="btn" id="prev">Prev</button><button class="btn" id="next">Next</button></div>
+  <script>
+    (function(){
+      var idx=0;
+      var slides=document.querySelectorAll('.slide');
+      function show(i){
+        slides[idx].classList.remove('active');
+        idx=(i+slides.length)%slides.length;
+        slides[idx].classList.add('active');
+      }
+      document.getElementById('next').addEventListener('click',function(){ show(idx+1); });
+      document.getElementById('prev').addEventListener('click',function(){ show(idx-1); });
+      document.addEventListener('keydown',function(e){ if(e.key==='ArrowRight') show(idx+1); if(e.key==='ArrowLeft') show(idx-1); });
+    })();
+  <\/script>
+</body></html>`;
+    return html;
+  }
+
+  // 2) Generate LKPD (worksheet) - printable HTML
+  function generateLKPD(form){
+    const objectives = form.objectives.length? '<ul>'+form.objectives.map(o=>`<li>${escapeHtml(o)}</li>`).join('') + '</ul>' : '';
+    const html = `<!doctype html><html lang="id"><head><meta charset="utf-8"><title>LKPD - ${escapeHtml(form.topic)}</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font-family:Arial,Helvetica,sans-serif;padding:20px;color:#111} h1{font-size:1.2rem} .section{margin-top:1rem}</style></head><body>`
+      + `
+    <h1>LKPD: ${escapeHtml(form.topic)}</h1>
+    <div class="section"><strong>Level:</strong> ${escapeHtml(form.grade)} • <strong>Durasi:</strong> ${escapeHtml(String(form.duration))} menit</div>
+    <div class="section"><strong>Tujuan Pembelajaran</strong>${objectives}</div>
+    <div class="section"><strong>Instruksi:</strong><p>Kerjakan soal atau aktivitas berikut secara berkelompok/independen sesuai petunjuk guru.</p></div>
+    <div class="section"><strong>Soal / Tugas</strong>
+      <ol>
+        <li>Jelaskan secara singkat apa itu AI dan berikan contoh di bidang pendidikan.</li>
+        <li>Buatlah 3 pertanyaan yang bisa diajukan ke chatbot untuk membantu siswa memahami topik.</li>
+        <li>Refleksi: bagaimana AI dapat membantu guru dalam menilai tugas?</li>
+      </ol>
+    </div>
+    <div class="section"><strong>Penilaian</strong>
+      <p>Gunakan rubrik yang disediakan oleh guru.</p>
+    </div>
+  </body></html>`;
+    return html;
+  }
+
+  // 3) Generate Article (Markdown)
+  function generateArticle(form){
+    const md = `# ${form.topic}\n\n**Level:** ${form.grade}  \n**Durasi:** ${form.duration} menit  \n\n## Ringkasan\n\n${(form.objectives.length? '- ' + form.objectives.join('\n- ') + '\n\n' : '')}## Pendahuluan\n\nTuliskan pengantar tentang ${form.topic}.\n\n## Isi\n\n- Konsep utama\n- Penerapan di kelas\n- Contoh kegiatan\n\n## Kesimpulan & Tindak Lanjut\n\nSertakan saran tugas atau sumber bacaan lanjutan.`;
+    return md;
+  }
+
+  // 4) Generate Evaluation (JSON with simple MCQ + ESSAY template)
+  function generateEvaluation(form){
+    const evalObj = {
+      topic: form.topic,
+      grade: form.grade,
+      duration: form.duration,
+      items: [
+        {id:'q1', type:'mcq', question:'Apa kepanjangan dari AI?', choices:['Artificial Intelligence','Advanced Instruction','Automatic Input'], answer:0, points:1},
+        {id:'q2', type:'essay', question:'Jelaskan contoh penggunaan AI di kelas dan dampaknya terhadap pembelajaran.', points:5}
+      ]
+    };
+    return JSON.stringify(evalObj, null, 2);
+  }
+
+  // 5) Generate Rubric (HTML table)
+  function generateRubric(form){
+    // default rubric: 3 criteria (content, accuracy, presentation), 4-level scale
+    const criteria = [
+      {name:'Kejelasan Konten', desc:'Kelengkapan dan kejelasan penjelasan'},
+      {name:'Ketepatan Konsep', desc:'Ketepatan penggunaan istilah dan konsep AI'},
+      {name:'Kreativitas & Keterampilan', desc:'Inovasi dalam penerapan dan penyajian'}
+    ];
+    const levels = ['4 - Sangat Baik','3 - Baik','2 - Cukup','1 - Perlu Perbaikan'];
+    const table = `<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Rubrik - ${escapeHtml(form.topic)}</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font-family:Arial;padding:16px;color:#111}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px}th{background:#f6f8fb}</style></head><body><h1>Rubrik Penilaian: ${escapeHtml(form.topic)}</h1><p><strong>KD:</strong> ${escapeHtml(form.kd)}</p><table><thead><tr><th>Kriteria</th>${levels.map(l=>`<th>${l}</th>`).join('')}</tr></thead><tbody>${criteria.map(c=>`<tr><td><strong>${c.name}</strong><div class="small">${c.desc}</div></td>${[4,3,2,1].map(n=>`<td>Deskripsi untuk skor ${n} (${c.name})</td>`).join('')}</tr>`).join('')}</tbody></table></body></html>`;
+    return table;
+  }
+
+  // Wire buttons and preview
+  function setPreview(content, type='html'){
+    const area = document.getElementById('previewArea');
+    if(!area) return;
+    if(type==='html') area.innerHTML = content.substring(0,1000) + (content.length>1000? '... (preview trimmed)':'');
+    else area.textContent = content.substring(0,1000) + (content.length>1000? '... (preview trimmed)':'');
+  }
+
+  // Attach event listeners safely after DOM ready
+  loadModulesFromStorage();
+
+  const btnSlides = document.getElementById('genSlides');
+  const btnLKPD = document.getElementById('genLKPD');
+  const btnArticle = document.getElementById('genArticle');
+  const btnEval = document.getElementById('genEval');
+  const btnRubric = document.getElementById('genRubric');
+  const btnDownloadAll = document.getElementById('downloadAll');
+
+  if(btnSlides) btnSlides.addEventListener('click', ()=>{
+    const form = getForm(); const html = generateSlides(form); setPreview(html,'html'); download(`${form.topic.replace(/\s+/g,'_')}_slides.html`, html, 'text/html');
+  });
+
+  if(btnLKPD) btnLKPD.addEventListener('click', ()=>{
+    const form = getForm(); const html = generateLKPD(form); setPreview(html,'html'); download(`${form.topic.replace(/\s+/g,'_')}_LKPD.html`, html, 'text/html');
+  });
+
+  if(btnArticle) btnArticle.addEventListener('click', ()=>{
+    const form = getForm(); const md = generateArticle(form); setPreview(md,'md'); download(`${form.topic.replace(/\s+/g,'_')}_article.md`, md, 'text/markdown');
+  });
+
+  if(btnEval) btnEval.addEventListener('click', ()=>{
+    const form = getForm(); const js = generateEvaluation(form); setPreview(js,'text'); download(`${form.topic.replace(/\s+/g,'_')}_evaluation.json`, js, 'application/json');
+  });
+
+  if(btnRubric) btnRubric.addEventListener('click', ()=>{
+    const form = getForm(); const html = generateRubric(form); setPreview(html,'html'); download(`${form.topic.replace(/\s+/g,'_')}_rubric.html`, html, 'text/html');
+  });
+
+  if(btnDownloadAll) btnDownloadAll.addEventListener('click', ()=>{
+    const form = getForm();
+    const files = [
+      {name:`${form.topic.replace(/\s+/g,'_')}_slides.html`, content: generateSlides(form), mime:'text/html'},
+      {name:`${form.topic.replace(/\s+/g,'_')}_LKPD.html`, content: generateLKPD(form), mime:'text/html'},
+      {name:`${form.topic.replace(/\s+/g,'_')}_article.md`, content: generateArticle(form), mime:'text/markdown'},
+      {name:`${form.topic.replace(/\s+/g,'_')}_evaluation.json`, content: generateEvaluation(form), mime:'application/json'},
+      {name:`${form.topic.replace(/\s+/g,'_')}_rubric.html`, content: generateRubric(form), mime:'text/html'}
+    ];
+    files.forEach(f=>download(f.name, f.content, f.mime));
+  });
+
+}); // DOMContentLoaded
+</script>
+</body>
+</html>

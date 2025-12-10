@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AdaptLabo - Dashboard Pembelajaran Adaptif</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        /* (kept most original styling but added dashboard-specific styles) */
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'Segoe UI',Tahoma, Geneva, Verdana, sans-serif;color:#333;line-height:1.6}
+        nav{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:1rem 0;position:fixed;width:100%;top:0;z-index:1000}
+        .nav-container{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;padding:0 2rem}
+        .logo{color:white;font-size:1.5rem;font-weight:700}
+        .nav-links{display:flex;gap:1rem;list-style:none}
+        .nav-links a{color:white;text-decoration:none}
+        main{max-width:1200px;margin:90px auto 40px;padding:0 1rem}
+        .grid{display:grid;grid-template-columns:1fr 360px;gap:1.5rem}
+        @media(max-width:980px){.grid{grid-template-columns:1fr}}
+        /* Dashboard cards */
+        .card{background:#fff;border-radius:12px;padding:1rem;box-shadow:0 6px 18px rgba(16,24,40,.06)}
+        .section-title{font-size:1.25rem;margin-bottom:.5rem}
+        .progress-bar{height:14px;background:#e6e9ef;border-radius:999px;overflow:hidden}
+        .progress-fill{height:100%;background:linear-gradient(90deg,#667eea,#764ba2);width:0;border-radius:999px;transition:width .6s ease}
+        .recommendation{display:flex;flex-direction:column;gap:.6rem}
+        .rec-item{display:flex;justify-content:space-between;align-items:center;padding:.6rem;border-radius:8px;background:#f6f8fb}
+        .rec-item button{background:#667eea;color:white;border:none;padding:.45rem .7rem;border-radius:8px;cursor:pointer}
+        .small{font-size:.9rem;color:#555}
+        .chart-wrap{height:260px}
+        .competency-legend{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem}
+        .competency-legend span{padding:.25rem .5rem;background:#f1f5f9;border-radius:6px;font-size:.85rem}
+    </style>
+</head>
+<body>
+<nav>
+    <div class="nav-container">
+        <div class="logo"><i class="fas fa-brain"></i> AdaptLabo</div>
+        <ul class="nav-links">
+            <li><a href="#">Home</a></li>
+            <li><a href="#modul">Modul</a></li>
+            <li><a href="#dashboard">Dashboard</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main>
+    <section id="dashboard" class="card">
+        <h2 class="section-title">Dashboard Pembelajaran Adaptif</h2>
+        <p class="small">Menampilkan progress belajar, rekomendasi modul personal, dan visualisasi kompetensi real-time.</p>
+
+        <div class="grid" style="margin-top:1rem">
+            <div>
+                <!-- Progress + Charts -->
+                <div class="card" style="margin-bottom:1rem">
+                    <h3 class="small">Progress Belajar (total)</h3>
+                    <div style="display:flex;gap:1rem;align-items:center;margin-top:.6rem">
+                        <div style="flex:1">
+                            <div class="progress-bar" aria-hidden="true">
+                                <div id="totalProgressFill" class="progress-fill" style="width:0"></div>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;margin-top:.5rem;font-size:.9rem">
+                                <span id="totalProgressText">0%</span>
+                                <span class="small">Modul selesai: <strong id="modulesDone">0</strong>/<span id="modulesTotal">0</span></strong></span>
+                            </div>
+                        </div>
+                        <div style="width:110px;text-align:center">
+                            <div id="streak" style="font-weight:700;font-size:1.1rem">-</div>
+                            <div class="small">hari aktif</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-bottom:1rem">
+                    <h3 class="small">Visualisasi Kompetensi (real-time)</h3>
+                    <div class="chart-wrap"><canvas id="competencyRadar"></canvas></div>
+                    <div class="competency-legend" id="competencyLegend"></div>
+                </div>
+
+                <div class="card">
+                    <h3 class="small">Riwayat Pencapaian (7 hari terakhir)</h3>
+                    <div class="chart-wrap"><canvas id="historyBar"></canvas></div>
+                </div>
+            </div>
+
+            <aside>
+                <div class="card" style="margin-bottom:1rem">
+                    <h3 class="small">Rekomendasi Modul Personal</h3>
+                    <div id="recommendations" class="recommendation" style="margin-top:.6rem"></div>
+                    <div style="margin-top:.8rem;text-align:center">
+                        <button id="refreshRec" class="btn-refresh" style="background:transparent;border:1px solid #e6e9ef;padding:.5rem .8rem;border-radius:8px;cursor:pointer">Segarkan rekomendasi</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="small">Kontrol Real-time</h3>
+                    <p class="small">Sumber data real-time:</p>
+                    <div style="display:flex;gap:.5rem;margin-top:.6rem">
+                        <button id="connectSSE" style="padding:.5rem;border-radius:8px;border:1px solid #e6e9ef;cursor:pointer">Connect SSE</button>
+                        <button id="disconnectSSE" style="padding:.5rem;border-radius:8px;border:1px solid #e6e9ef;cursor:pointer">Disconnect</button>
+                    </div>
+                    <p class="small" style="margin-top:.6rem">Status: <span id="sseStatus">disconnected</span></p>
+                </div>
+            </aside>
+        </div>
+    </section>
+</main>
+
+<script>
+// --- Simple local demo data and utility functions ---
+const demoUser = {
+    id: 'guru123',
+    name: 'Pak/Bu Guru',
+    modulesTotal: 12,
+    modulesDone: 3,
+    streak: 4,
+    competencies: {
+        'AI Dasar': 65,
+        'Etika AI': 40,
+        'Prompting': 50,
+        'Integrasi di Kelas': 30,
+        'Penilaian Otomatis': 55
+    },
+    history7: [10, 20, 5, 35, 15, 25, 30] // contoh persen harian
+};
+
+// Save demo to localStorage (so user can tinker)
+if(!localStorage.getItem('adaptlabo_user')) localStorage.setItem('adaptlabo_user', JSON.stringify(demoUser));
+
+function loadUser(){
+    return JSON.parse(localStorage.getItem('adaptlabo_user'));
+}
+
+// Update progress UI
+function updateProgressUI(user){
+    const percent = Math.round((user.modulesDone / user.modulesTotal) * 100);
+    document.getElementById('totalProgressFill').style.width = percent + '%';
+    document.getElementById('totalProgressText').textContent = percent + '%';
+    document.getElementById('modulesDone').textContent = user.modulesDone;
+    document.getElementById('modulesTotal').textContent = user.modulesTotal;
+    document.getElementById('streak').textContent = user.streak;
+}
+
+// Recommendation engine (very lightweight rule-based)
+function generateRecommendations(user){
+    const recs = [];
+    // Recommend modules for competencies < 50
+    for(const [k,v] of Object.entries(user.competencies)){
+        if(v < 50) recs.push({title: `Tingkatkan: ${k}`, reason: `Skor kompetensi ${v}%. Modul singkat untuk memperkuat ${k}.`, estMinutes: 20});
+    }
+    // If modules remaining > 0, suggest next module
+    if(user.modulesDone < user.modulesTotal){
+        recs.unshift({title: `Lanjutkan Modul #${user.modulesDone + 1}`, reason: 'Modul berikutnya sesuai jalur pembelajaran Anda.', estMinutes: 30});
+    }
+    // If no low competencies, suggest challenge
+    if(recs.length === 0) recs.push({title: 'Tantangan Lanjutan: Proyek Mini', reason: 'Tingkatkan kemampuan lewat proyek terapan.', estMinutes: 60});
+    return recs;
+}
+
+function renderRecommendations(recs){
+    const wrap = document.getElementById('recommendations');
+    wrap.innerHTML = '';
+    recs.forEach(r => {
+        const box = document.createElement('div');
+        box.className = 'rec-item';
+        box.innerHTML = `<div style="max-width:70%"><strong>${r.title}</strong><div class="small">${r.reason}</div></div><div style="text-align:right"><div class="small">~${r.estMinutes}m</div><button onclick="applyRec('${encodeURIComponent(r.title)}')">Buka</button></div>`;
+        wrap.appendChild(box);
+    });
+}
+
+function applyRec(title){
+    // Example: increment modulesDone if recommendation is to continue
+    const decoded = decodeURIComponent(title);
+    const user = loadUser();
+    if(decoded.startsWith('Lanjutkan')){
+        user.modulesDone = Math.min(user.modulesTotal, user.modulesDone + 1);
+        localStorage.setItem('adaptlabo_user', JSON.stringify(user));
+        refreshAll();
+        alert('Modul dilanjutkan — status disimpan secara lokal (demo).');
+    } else {
+        alert(decoded + '\n(Ini demo; hubungkan ke modul nyata untuk membuka.)');
+    }
+}
+
+// Charts
+let radarChart, barChart;
+function initCharts(user){
+    const compLabels = Object.keys(user.competencies);
+    const compValues = Object.values(user.competencies);
+
+    const radarCtx = document.getElementById('competencyRadar');
+    if(radarChart) radarChart.destroy();
+    radarChart = new Chart(radarCtx, {
+        type: 'radar',
+        data: {
+            labels: compLabels,
+            datasets: [{label:'Skor Kompetensi', data: compValues, fill:true, tension:0.4, pointRadius:4}]
+        },
+        options: {responsive:true, maintainAspectRatio:false, scales:{r:{beginAtZero:true, max:100}}}
+    });
+
+    const barCtx = document.getElementById('historyBar');
+    if(barChart) barChart.destroy();
+    barChart = new Chart(barCtx, {
+        type: 'bar',
+        data: {labels:['-6','-5','-4','-3','-2','-1','Hari Ini'], datasets:[{label:'Aktivitas (%)', data:user.history7}]},
+        options:{responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true, max:100}}}
+    });
+
+    // legend
+    const legendWrap = document.getElementById('competencyLegend');
+    legendWrap.innerHTML = compLabels.map((l,i)=>`<span>${l}: ${compValues[i]}%</span>`).join('');
+}
+
+// Real-time updates via Server-Sent Events (SSE) or simulated
+let es = null;
+function connectSSE(){
+    // Attempt to connect to /sse (your backend should expose SSE stream that sends JSON events)
+    if(typeof(EventSource) === 'undefined'){
+        setSSEStatus('unsupported');
+        return;
+    }
+    setSSEStatus('connecting');
+    try{
+        es = new EventSource('/sse');
+        es.onopen = ()=> setSSEStatus('connected');
+        es.onmessage = (ev)=>{
+            // expected payload: {modulesDone,streak,competencies:{...},history7:[...]}
+            try{
+                const data = JSON.parse(ev.data);
+                const user = loadUser();
+                Object.assign(user, data);
+                localStorage.setItem('adaptlabo_user', JSON.stringify(user));
+                refreshAll();
+            }catch(e){console.error('invalid sse payload', e)}
+        };
+        es.onerror = ()=> setSSEStatus('error');
+    }catch(e){
+        console.error(e); setSSEStatus('error');
+    }
+}
+function disconnectSSE(){ if(es){ es.close(); es = null;} setSSEStatus('disconnected'); }
+function setSSEStatus(s){ document.getElementById('sseStatus').textContent = s; }
+
+// For demo: simulated real-time updates every 6s
+let demoInterval = null;
+function startDemoRealtime(){
+    stopDemoRealtime();
+    demoInterval = setInterval(()=>{
+        const user = loadUser();
+        // randomly nudge competencies
+        for(const k in user.competencies){
+            user.competencies[k] = Math.min(100, Math.max(10, user.competencies[k] + (Math.random()*10 - 5)) | 0);
+        }
+        // sometimes increase modulesDone
+        if(Math.random() > 0.7) user.modulesDone = Math.min(user.modulesTotal, user.modulesDone + 1);
+        // shift history
+        user.history7.shift(); user.history7.push(Math.round(Math.random()*60 + 10));
+        localStorage.setItem('adaptlabo_user', JSON.stringify(user));
+        refreshAll();
+    }, 6000);
+}
+function stopDemoRealtime(){ if(demoInterval) clearInterval(demoInterval); demoInterval = null; }
+
+// Refresh everything
+function refreshAll(){
+    const user = loadUser();
+    updateProgressUI(user);
+    const recs = generateRecommendations(user);
+    renderRecommendations(recs);
+    initCharts(user);
+}
+
+// Wire buttons
+document.getElementById('refreshRec').addEventListener('click', ()=>{ renderRecommendations(generateRecommendations(loadUser())); });
+document.getElementById('connectSSE').addEventListener('click', ()=>{ connectSSE(); startDemoRealtime(); setSSEStatus('simulated'); });
+document.getElementById('disconnectSSE').addEventListener('click', ()=>{ disconnectSSE(); stopDemoRealtime(); });
+
+// init
+refreshAll();
+
+// Expose helper for debugging in console
+window.AdaptLabo = {loadUser, refreshAll, connectSSE, disconnectSSE};
+
+</script>
+</body>
+</html>
